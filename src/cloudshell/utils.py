@@ -1,5 +1,9 @@
 
+import shlex
+
 class color:
+    """ANSI Color wrapper"""
+
     prefix = "\033["
     postfix = "m"
     color_codes = {
@@ -15,10 +19,27 @@ class color:
     background = 10
     bold = 1
 
+    @classmethod
     def clear(self):
+        """Return the no-color ANSI color."""
         return self.prefix + '00' + self.postfix
 
+    @classmethod
     def set(self,color,bold=False,bg=False):
+        """
+        Provide an ANSI Color control code.
+
+        color is the only required field and must be in the list of colors
+        defined in the color_codes dictionary attribute to this class.
+
+        bold and bg are by-default False boolean values that will tweak 
+        the color code returned.  bold will change the first number from
+        00 to 01 while bg adds 10 to the color code in the second.
+
+        returns \\033[**;??m  where ** is either 00 or 01 (bold)
+                                and ?? is the color_code requested
+
+        """
         if color == 'white':
             color = 'grey'
             bold = True
@@ -29,3 +50,7 @@ class color:
             return self.prefix + '01;' + str(color_code) + self.postfix
         else:
             return self.prefix + '00;' + str(color_code) + self.postfix
+
+    @classmethod
+    def error(self,error_text):
+        return self.set('red') + error_text + self.clear()

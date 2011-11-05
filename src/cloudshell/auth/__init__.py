@@ -1,13 +1,21 @@
 
-import clouddns
+import urllib2
+
 from clouddns.consts import uk_authurl, us_authurl
 
-# Use the Cloud DNS api to do auth
-# TODO: Make an auth system that will allow us to auth to any Rackspace Product
+# TODO: Make an auth system that doesn't suck
 
 def auth(username, apikey, isuk):
-    """
-    Simple Wrapper to Cloud DNS's auth system
-    """
-    return clouddns.connection.Connection(username,apikey,authurl = \
-               (uk_authurl if isuk else us_authurl))
+    headers = {'X-Auth-Key': apikey,
+               'X-Auth-User': username
+    }
+    if isuk:
+        req = urllib2.Request(uk_authurl, None, headers)
+    else:
+        req = urllib2.Request(us_authurl, None, headers)
+
+    response = urllib2.urlopen(req)
+    h = response.headers.dict
+    return (h['x-auth-token'], h['x-storage-url'], 
+            h['x-cdn-management-url'], h['x-server-management-url'])
+
