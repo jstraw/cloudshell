@@ -15,15 +15,22 @@ install_requires = [
     'python-novaclient >= 2.0.0',
     'python-cloudlb >= 0.3',
     'python-cloudfiles >= 1.7.9.0',
+    'python-clouddns'
 ]
 
 
 setup(name='cloudshell',
     version=version,
-    description="Rackspace API Shell",
+    description="Rackspace Cloud API Shell",
     long_description=README + '\n\n' + NEWS,
     classifiers=[
       # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
+      'Development Status :: 2 - Pre-Alpha',
+      'Environment :: Console',
+      'License :: OSI Approved :: GNU General Public License (GPL)',
+      'Operating System :: OS Independent',
+      'Programming Language :: Python',
+      'Topic :: System :: Systems Administration'
     ],
     keywords='Rackspace Cloud Shell',
     author='Jason Straw',
@@ -32,6 +39,9 @@ setup(name='cloudshell',
     license='GPL v3',
     packages=find_packages('src'),
     package_dir = {'': 'src'},include_package_data=True,
+    dependency_links = [
+        'https://github.com/rackspace/python-clouddns/zipball/master'
+    ],
     zip_safe=False,
     install_requires=install_requires,
     entry_points={
