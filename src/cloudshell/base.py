@@ -11,7 +11,7 @@ class base_shell(cmd.Cmd, object):
     def do_EOF(self, string):
         # make sure that the new prompt (either internal or returned to shell)
         # is on its own line.
-        print
+        print '\n'
         return True
 
     do_exit = do_EOF
@@ -19,9 +19,9 @@ class base_shell(cmd.Cmd, object):
     def set_prompt(self, username, breadcrumbs):
         c_pri = color.set('blue')
         c_un = color.set('cyan')
-        self.prompt = (c_pri + 'CloudShell ' + c_un + username + 
-                       c_pri + ' ' + ' > '.join(breadcrumbs) + 
-                       color.clear() + ' $ ')
+        self.prompt = c_pri + 'CloudShell ' + c_un + username + \
+                       c_pri + ' ' + ' > '.join(breadcrumbs) + \
+                       color.clear() + ' $ '
 
     def do_shell(self, string):
         """Run a shell command"""

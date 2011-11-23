@@ -1,8 +1,8 @@
 # Example package with a console entry point
 
 import argparse
-import cmd
 
+from cloudshell.base import base_shell
 import cloudshell.auth
 import cloudshell.dns
 import cloudshell.dns.utils
@@ -11,7 +11,7 @@ import cloudshell.servers
 import cloudshell.files
 from cloudshell.utils import color
 
-class main_shell(cmd.Cmd,object):
+class main_shell(base_shell):
     """
     Entry class for the command shell.
 
@@ -41,15 +41,16 @@ class main_shell(cmd.Cmd,object):
     regions = ['ord', 'dfw', 'lon']
 
     def __init__(self, username, apikey, isuk=False):
-        cmd.Cmd.__init__(self)
+        base_shell.__init__(self)
         (self.auth_token, self.server_url, self.files_url, self.files_cdn_url) = \
                 cloudshell.auth.auth(username, apikey, isuk)
         self.username = username
         self.apikey = apikey
         self.isuk = isuk
-        self.prompt = color.set('blue') + 'CloudShell ' + \
-                      color.set('cyan') + username + \
-                      color.set('blue') + ' > ' + color.clear()
+        self.set_prompt(username, [])
+#        self.prompt = color.set('blue') + 'CloudShell ' + \
+#                      color.set('cyan') + username + \
+#                      color.set('blue') + ' > ' + color.clear()
 
     def do_dns(self, s):
         "Maintain DNS entries"
@@ -64,7 +65,7 @@ class main_shell(cmd.Cmd,object):
     def do_servers(self, s):
         "Maintain Cloud Servers"
         if self.servers == None:
-            self.servers = 'stub'
+            self.servers = cloudshell.servers.servers_shell(self)
         if len(s):
             self.servers.onecmd(s)
         else:
@@ -84,12 +85,6 @@ class main_shell(cmd.Cmd,object):
     def do_files(self, s):
         "Maintain Cloud Files"
         pass
-
-    def do_EOF(self, s):
-        return True
-
-    def do_exit(self, s):
-        return True
 
 
 def main():

@@ -4,11 +4,12 @@ import clouddns.connection
 from clouddns.consts import uk_authurl
 
 from cloudshell.utils import color
+from cloudshell.base import base_shell
 
 
-class dns_shell(cmd.Cmd,object):
+class dns_shell(base_shell):
     def __init__(self, main_shell):
-        cmd.Cmd.__init__(self)
+        base_shell.__init__(self)
         self.main_shell = main_shell
         self.dns_url = main_shell.dns_url
         if main_shell.isuk:
@@ -18,9 +19,10 @@ class dns_shell(cmd.Cmd,object):
         else:
             self.api = clouddns.connection.Connection(username=main_shell.username, 
                                                       api_key=main_shell.apikey)
-        self.prompt = color.set('blue') + 'CloudShell ' + \
-                      color.set('cyan') + main_shell.username + \
-                      color.set('blue') + ' DNS > ' + color.clear()
+        self.set_prompt(main_shell.username, ['DNS'])
+#        self.prompt = color.set('blue') + 'CloudShell ' + \
+#                      color.set('cyan') + main_shell.username + \
+#                      color.set('blue') + ' DNS > ' + color.clear()
 
     def do_list(self, s):
         # Right now, the clouddns module doesn't do filtered search, get all of them
