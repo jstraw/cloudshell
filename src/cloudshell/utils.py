@@ -36,21 +36,20 @@ class color:
         the color code returned.  bold will change the first number from
         00 to 01 while bg adds 10 to the color code in the second.
 
-        returns \\033[**;??m  where ** is either 00 or 01 (bold)
+        returns \\033[**;??;##m  where ** is either 00 or 01 (bold)
                                 and ?? is the color_code requested
+                                and ## is the background if set
 
         """
         if color == 'white':
             color = 'grey'
             bold = True
-        color_code = self.color_codes[color]
-        if bg:
-            color_code += self.background
+        second = self.color_codes[color]
         if bold:
-            return self.prefix + '01;' + str(color_code) + self.postfix
+            first = '01'
         else:
-            return self.prefix + '00;' + str(color_code) + self.postfix
-
-    @classmethod
-    def error(self,error_text):
-        return self.set('red') + error_text + self.clear()
+            first = '00'
+        output = self.prefix + first + ';' + str(second)
+        if bg:
+            output += ';' + str(self.color_codes[bg] + self.background)
+        return output + self.postfix

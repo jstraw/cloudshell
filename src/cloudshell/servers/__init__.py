@@ -1,4 +1,5 @@
 import cmd
+import shlex
 
 import prettytable
 import novaclient.v1_0.client
@@ -37,18 +38,18 @@ class servers_shell(base_shell):
         for x in self.servers:
             slist.add_row([x.id, x.name, x.status, '\n'.join(x.addresses['public']), '\n'.join(x.addresses['private'])])
         slist.printt(sortby='Server ID')
+    do_ls = do_list
 
     def do_images(self, s):
-        print color.set('yellow') + "Getting Image List" + color.clear()
+        self.notice("Getting Image List")
         self.images = self.api.images.list()
-        if s == 'list':
-            print color.set('yellow') + "Getting Server List" + color.clear()
+        if s[:4] == 'list':
+            self.notice("Getting Server List")
             if self.servers is None:
                 self.servers = self.api.servers.list()
             slist = {}
             for s in self.servers:
                 slist[s.id] = s.name
-            print color.set('yellow') + "Setting up table" + color.clear()
             ilist = prettytable.PrettyTable(['Image ID', 'Image Name', 'Parent Server', 'Status'])
             ilist.set_field_align('Image ID', 'l')
             ilist.set_field_align('Image Name', 'l')
@@ -61,4 +62,47 @@ class servers_shell(base_shell):
                     parent = 'None'
                 ilist.add_row([x.id, x.name, parent, x.status])
             ilist.printt(sortby='Image ID')
+        elif s[:6] == 'create':
+            args = s.split()
 
+    def do_flavors(self, s):
+        self.flavors = self.api.flavors.list()
+        flist = prettytable.PrettyTable(['Flavor ID', 'Flavor Name', 'RAM', 'Disk'])
+        flist.set_field_align('Flavor Name', 'l')
+        flist.set_field_align('RAM', 'r')
+        flist.set_field_align('Disk', 'r')
+        for x in self.flavors:
+            flist.add_row([x.id, x.name, str(x.ram) + ' (MB)', str(x.disk) + ' (GB)'])
+        print flist
+
+    def do_boot(self, s):
+        """Boot/Create a New Server:
+        Name - 26 Characters or less, no spaces
+        Image ID/Name - use images list to get a list of available options
+        Flavor ID/RAM Size - use flavors to get a list of available options
+                             This will take 1-7, or the #MB of ram, not a GB count
+        optional flags: (not active)
+        dometa - build a dictionary of metatags
+        dofiles - create a fileset to inject into the server on create
+        """
+        args = shlex.split(s)
+        meta = False
+        files = False
+        try:
+            name = args[0]
+            image = args[1]
+            flavor = args[2]
+        except:
+            self.error("boot/create requires at least 3 arguments: name image flavor")
+            return
+        if len(args) > 3:
+            for x in args[3:]:
+                if x == 'dometa':
+                    meta = True
+                elif x == 'dofiles':
+                    files = True
+
+    do_create = do_boot
+
+    def do_python(self, s):
+        import pdb; pdb.set_trace()

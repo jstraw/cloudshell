@@ -48,9 +48,6 @@ class main_shell(base_shell):
         self.apikey = apikey
         self.isuk = isuk
         self.set_prompt(username, [])
-#        self.prompt = color.set('blue') + 'CloudShell ' + \
-#                      color.set('cyan') + username + \
-#                      color.set('blue') + ' > ' + color.clear()
 
     def do_dns(self, s):
         "Maintain DNS entries"
@@ -74,7 +71,7 @@ class main_shell(base_shell):
     def do_lb(self,s):
         "Maintain Cloud Load Balancers"
         if len(s) == 0:
-            print color.error("Load Balancers *require* a region.")
+            self.error("Load Balancers *require* a region.")
         else:
             region = s.split()[0]
             subcommand = " ".join(s.split()[1:])
@@ -85,6 +82,20 @@ class main_shell(base_shell):
     def do_files(self, s):
         "Maintain Cloud Files"
         pass
+
+    def do_colortest(self, s):
+        for name in color.color_codes.keys():
+            print "% 4s %s% 6s" % ('', color.set(name), name),
+            print color.clear(), 'bg:',
+            for x in color.color_codes.keys():
+                print "%s% 6s" % (color.set(x, bg=name), x),
+            print color.clear()
+            print "% 4s %s% 6s" % ('bold', color.set(name, bold=True), name),
+            print color.clear(), 'bg:', 
+            for x in color.color_codes.keys():
+                print "%s% 6s" % (color.set(x, bold=True, bg=name), x),
+            print color.clear()
+
 
 
 def main():
