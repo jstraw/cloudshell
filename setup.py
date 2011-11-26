@@ -40,7 +40,7 @@ setup(name='cloudshell',
     packages=find_packages('src'),
     package_dir = {'': 'src'},include_package_data=True,
     dependency_links = [
-        'https://github.com/rackspace/python-clouddns/zipball/master'
+        'https://github.com/rackspace/python-clouddns/zipball/master#egg=python-clouddns-0.0.0'
     ],
     zip_safe=False,
     install_requires=install_requires,
