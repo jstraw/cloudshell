@@ -28,6 +28,11 @@ class servers_shell(base_shell):
         self.servers = None
 
     def do_list(self, s):
+        """List Servers
+
+        If an argument is provided it will only display servers 
+        matching Server Name or a primary IP address.
+        """
         self.servers = self.api.servers.list()
         slist = prettytable.PrettyTable(['Server ID', 'Server Name', 'Status', 'Public Address(es)', 'Private Address'])
         slist.set_field_align('Server ID', 'l')
@@ -36,11 +41,17 @@ class servers_shell(base_shell):
         slist.set_field_align('Public Address(es)', 'l')
         slist.set_field_align('Private Address', 'l')
         for x in self.servers:
-            slist.add_row([x.id, x.name, x.status, '\n'.join(x.addresses['public']), '\n'.join(x.addresses['private'])])
+            if len(s) == 0 or s in x.name or s in x.addresses['public'][0] or s in x.addresses['private'][0]:
+                slist.add_row([x.id, x.name, x.status, '\n'.join(x.addresses['public']), '\n'.join(x.addresses['private'])])
         slist.printt(sortby='Server ID')
     do_ls = do_list
 
     def do_images(self, s):
+        """Image Commands
+
+        list - list all images (with parent server)
+        create - not complete, usage: <server id or name> <name to call the image>
+        """
         self.notice("Getting Image List")
         self.images = self.api.images.list()
         if s[:4] == 'list':
@@ -66,6 +77,7 @@ class servers_shell(base_shell):
             args = s.split()
 
     def do_flavors(self, s):
+        """List Flavors"""
         self.flavors = self.api.flavors.list()
         flist = prettytable.PrettyTable(['Flavor ID', 'Flavor Name', 'RAM', 'Disk'])
         flist.set_field_align('Flavor Name', 'l')
