@@ -47,5 +47,6 @@ setup(name='cloudshell',
     entry_points={
         'console_scripts':
             ['cloudshell=cloudshell:main']
-    }
+    },
+    data_files=[('/etc/profile.d', ['tools/cloudservers-aliases.sh'])]
 )
