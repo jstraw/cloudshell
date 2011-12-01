@@ -26,6 +26,8 @@ class servers_shell(base_shell):
                                                      us_authurl)
         self.set_prompt(main_shell.username, ['Servers'])
         self.servers = None
+        self.images = None
+        self.flavors = None
 
     def do_list(self, s):
         """List Servers
@@ -33,7 +35,8 @@ class servers_shell(base_shell):
         If an argument is provided it will only display servers 
         matching Server Name or a primary IP address.
         """
-        self.servers = self.api.servers.list()
+        if self.servers == None or 'refresh' in s:
+            self.servers = self.api.servers.list()
         slist = prettytable.PrettyTable(['Server ID', 'Server Name', 'Status', 'Public Address(es)', 'Private Address'])
         slist.set_field_align('Server ID', 'l')
         slist.set_field_align('Server Name', 'l')
@@ -53,7 +56,8 @@ class servers_shell(base_shell):
         create - not complete, usage: <server id or name> <name to call the image>
         """
         self.notice("Getting Image List")
-        self.images = self.api.images.list()
+        if self.images == None or 'refresh' in s:
+            self.images = self.api.images.list()
         if s[:4] == 'list':
             self.notice("Getting Server List")
             if self.servers is None:
