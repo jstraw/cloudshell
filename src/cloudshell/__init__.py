@@ -1,6 +1,10 @@
 # Example package with a console entry point
+#
 
+import sys
+import os.path
 import argparse
+
 
 from cloudshell.base import base_shell
 import cloudshell.auth
@@ -10,6 +14,21 @@ import cloudshell.lb
 import cloudshell.servers
 import cloudshell.files
 from cloudshell.utils import color
+
+try:
+    sys.path.append(os.path.join(os.path.expanduser('~'),'.cloudshell'))
+    import csextensions
+except NameError:
+    # Build a psuedo extension that does nothing!
+    # Also, Defines the methods needed for extensions
+    class extend:
+        pass
+    print "Extensions Failed to Load"
+    csextensions = extend()
+    csextensions.args = None
+    csextensions.funcs = {'servers': [], 'files': [], 'lb': [], 'dns': []}
+    csextensions.shells = []
+    csextensions.premain = None
 
 class main_shell(base_shell):
     """
@@ -96,18 +115,29 @@ class main_shell(base_shell):
                 print "%s% 6s" % (color.set(x, bold=True, bg=name), x),
             print color.clear()
 
+################################################################################
+################################################################################
+################################################################################
+##### Create the shell do the needful on loading extensions and args! ##########
 
 
 def main():
     parser = argparse.ArgumentParser(description="Rackspace Cloud API Shell`")
     parser.add_argument("-u", "--username", dest="username", 
-                        help="Rackspace Cloud Username", required=True)
+                        help="Rackspace Cloud Username")
     parser.add_argument("-k", "--apikey", dest="apikey", 
-                        help="Rackspace Cloud API Key", required=True)
+                        help="Rackspace Cloud API Key")
     parser.add_argument("--uk", action="store_true", dest="isuk", 
                         help="Account is from Rackspace Cloud UK", 
                         default=False)
+    if csextensions.args is not None:
+        parser = csextensions.args(parser)
     args = parser.parse_args()
-
-    shell = main_shell(args.username,args.apikey, args.isuk)
-    shell.cmdloop('Welcome to Rackspace Cloud API Shell\nYou are logged in as: ' + args.username)
+    try:
+        shell = main_shell(args.username,args.apikey, args.isuk)
+    except NameError:
+        print "You must enter a Username and API Key to use Cloudshell"
+    else:
+        if csextensions.premain is not None:
+            csextensions.premain(shell)
+        shell.cmdloop('Welcome to Rackspace Cloud API Shell\nYou are logged in as: ' + args.username)
