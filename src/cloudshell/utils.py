@@ -53,3 +53,7 @@ class color:
         if bg:
             output += ';' + str(self.color_codes[bg] + self.background)
         return output + self.postfix
+
+
+def insertmethod(function,method,shellname):
+    pass

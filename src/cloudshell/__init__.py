@@ -15,20 +15,23 @@ import cloudshell.servers
 import cloudshell.files
 from cloudshell.utils import color
 
+
+savepath = os.path.join(os.path.expanduser('~'),'.cloudshell')
+extendpath = os.path.join(savepath,'csextensions')
+
 try:
-    sys.path.append(os.path.join(os.path.expanduser('~'),'.cloudshell'))
+    sys.path.append(savepath)
     import csextensions
-except NameError:
-    # Build a psuedo extension that does nothing!
-    # Also, Defines the methods needed for extensions
-    class extend:
-        pass
-    print "Extensions Failed to Load"
-    csextensions = extend()
-    csextensions.args = None
-    csextensions.funcs = {'servers': [], 'files': [], 'lb': [], 'dns': []}
-    csextensions.shells = []
-    csextensions.premain = None
+except ImportError:
+    # Make that dir!
+    os.makedirs(extendpath)
+    csext_init = ['from types import MethodType\n\n','import cloudshell\n\n',
+            'def args(parser):\n','    return parser\n\n',
+            'def preshell(args):\n','    return args\n\n',
+            'def premain(shell):\n','    return shell\n\n']
+    open(os.path.join(extendpath,'__init__.py'), 'w').writelines(csext_init)
+    print "Setup Default Extensions, please reconnect"
+    sys.exit()
 
 class main_shell(base_shell):
     """
@@ -133,11 +136,17 @@ def main():
     if csextensions.args is not None:
         parser = csextensions.args(parser)
     args = parser.parse_args()
-    try:
-        shell = main_shell(args.username,args.apikey, args.isuk)
-    except NameError:
-        print "You must enter a Username and API Key to use Cloudshell"
+
+    args = csextensions.preshell(args)
+
+    if len(args.username) > 0 and len(args.apikey) > 0:
+        try:
+            shell = main_shell(args.username,args.apikey, args.isuk)
+        except NameError:
+            print "You must enter a Username and API Key to use Cloudshell"
+        else:
+            if csextensions.premain is not None:
+                csextensions.premain(shell)
+            shell.cmdloop('Welcome to Rackspace Cloud API Shell\nYou are logged in as: ' + args.username)
     else:
-        if csextensions.premain is not None:
-            csextensions.premain(shell)
-        shell.cmdloop('Welcome to Rackspace Cloud API Shell\nYou are logged in as: ' + args.username)
+        parser.print_help()
