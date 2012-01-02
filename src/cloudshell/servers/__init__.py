@@ -1,5 +1,8 @@
 import cmd
 import shlex
+import re
+import urllib2
+import json
 
 import prettytable
 import novaclient.v1_0.client
@@ -27,7 +30,8 @@ class servers_shell(base_shell):
         self.set_prompt(main_shell.username, ['Servers'])
         self.servers = None
         self.images = None
-        self.flavors = None
+        self.flavors = self.api.flavors.list()
+        self.strip_refresh = re.compile('\brefresh\b')
 
     def do_list(self, s):
         """List Servers
@@ -45,6 +49,7 @@ class servers_shell(base_shell):
         slist.set_field_align('Status', 'l')
         slist.set_field_align('Public Address(es)', 'l')
         slist.set_field_align('Private Address', 'l')
+        s = self.strip_refresh.sub(' ', s)
         for x in self.servers:
             if (len(s) == 0 or s in x.name or s in x.addresses['public'][0] 
                     or s in x.addresses['private'][0]):
@@ -52,23 +57,43 @@ class servers_shell(base_shell):
                     '\n'.join(x.addresses['public']), 
                     '\n'.join(x.addresses['private'])])
         slist.printt(sortby='Server ID')
+        self.do_tally(s)
     do_ls = do_list
 
     def do_tally(self, s):
         if self.servers == None or 'refresh' in s:
             self.servers = self.api.servers.list()
-        if self.flavors == None:
-            self.flavors = self.api.flavors.list()
         f_ram = {}
         for flavor in self.flavors:
             f_ram[flavor.id] = flavor.ram
         tally = 0
-        for server in self.servers:
-            tally += f_ram[server.flavorId]
+        for x in self.servers:
+            if (len(s) == 0 or s in x.name or s in x.addresses['public'][0]
+                   or s in x.addresses['private'][0]):
+                tally += f_ram[x.flavorId]
         print "Account is using", float(tally)/1024.0, "GB of RAM"
 
     def do_limits(self, s):
-        pass
+        headers = {"X-Auth-Token": self.main_shell.auth_token,
+                   "Accept":  'application/json'}
+        req = urllib2.Request(self.main_shell.server_url + '/limits', None, headers)
+        try:
+            response = urllib2.urlopen(req)
+            self.limits = json.loads(response.read())['limits']
+        except urllib2.URLError:
+            self.error("Failed to get limits")
+            print self.main_shell.server_url + '/limits'
+            raise
+        print "    Server Limits (Absolute)"
+        print "Total RAM:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
+        print "    Server Rate Limits:"
+        for rate in self.limits['rate']:
+            if rate['URI'] is '*':
+                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on any URI per', rate['unit'].lower()
+            elif len(rate['URI']) > 1 and rate['URI'][0] == '*' and rate['URI'][-1] == '*':
+                    print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'with URI containing:', rate['URI'][1:-1], 'per', rate['unit'].lower()
+            else:
+                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on URI:', rate['URI'], 'per', rate['unit'].lower()
 
     def do_images(self, s):
         """Image Commands

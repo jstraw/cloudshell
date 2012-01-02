@@ -16,6 +16,6 @@ def auth(username, apikey, isuk):
 
     response = urllib2.urlopen(req)
     h = response.headers.dict
-    return (h['x-auth-token'], h['x-storage-url'], 
-            h['x-cdn-management-url'], h['x-server-management-url'])
+    return (h['x-auth-token'], h['x-server-management-url'], 
+            h['x-storage-url'], h['x-cdn-management-url'])
 
