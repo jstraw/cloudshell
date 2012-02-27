@@ -72,8 +72,15 @@ class main_shell(base_shell):
             region = s.split()[0]
             subcommand = " ".join(s.split()[1:])
             if region not in self.regions:
-                print color.error("Region not in the list of allowed regions")
-        pass
+                self.error("Region not in the list of allowed regions")
+            else:
+                if self.lb == None:
+                    self.lb = cloudshell.lb.lb_shell(self, region)
+                if len(subcommand):
+                    self.lb.onecmd(subcommand)
+                else:
+                    self.lb.cmdloop()
+                    
 
     def do_files(self, s):
         "Maintain Cloud Files"
