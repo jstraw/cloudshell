@@ -69,19 +69,23 @@ class domain_shell(base_shell):
     do_del = do_delete
 
     def do_ttl(self, s):
-        """Configure Domain-wide TTL"""
+        """Configure Domain-wide TTL
+    
+    Usage:
+        ttl <seconds>
+    """
         try:
             self.domain.update(ttl=s)
         except:
             pass
 
     def do_email(self, s):
-        """Configure Email Address contact for domain"""
+        """Configure Email Address contact for domain
+        
+    Usage:
+        email <user@domain.com>
+    """
         try:
             self.domain.update(emailAddress=s)
         except:
             pass
-
-    def do_python(self, s):
-        import pdb; pdb.set_trace()
-
