@@ -87,6 +87,7 @@ class lb_shell(base_shell):
             self.lb = lb_single_shell(self, lb)
             self.lb.cmdloop()
         
+    do_use = do_select
 
     def do_python(self, s):
         import pdb; pdb.set_trace()
