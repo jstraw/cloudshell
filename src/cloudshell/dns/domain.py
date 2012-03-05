@@ -5,9 +5,11 @@ import shlex
 import prettytable
 import clouddns.connection
 from clouddns.consts import uk_authurl
+from clouddns.errors import ResponseError
 
 from cloudshell.utils import color
 from cloudshell.base import base_shell
+from cloudshell.dns.utils import error_handler
 
 
 class domain_shell(base_shell):
@@ -17,11 +19,13 @@ class domain_shell(base_shell):
         self.domain = domain
         self.set_prompt(self.dns_shell.main_shell.username, ['DNS', domain.name])
         self.records = None
+        self.forceupdate = False
 
     def do_list(self, s):
         "List the records on this domain."
         # Right now, the clouddns module doesn't do filtered search, get all of them
-        if self.records == None or 'refresh' in s:
+        if self.records == None or self.forceupdate == True or 'refresh' in s:
+            self.forceupdate = False
             self.records = self.domain.get_records()
         rlist = prettytable.PrettyTable(['ID', 'FQDN', 'Type', 'IP/Alias',
                                          'TTL', 'Created', 'Updated'])
@@ -47,13 +51,26 @@ class domain_shell(base_shell):
         args = shlex.split(s)
         if args[0].upper() == 'MX' and not len(args) == 5:
             self.error("You need an MX Priority when you make a MX record")
-        if len(args) < 5:
+        elif len(args) < 5:
             args.append(None)
         try:
             self.domain.create_record(args[1], args[2], args[0].upper(), 
                                       args[3], args[4])
-        except:
-            pass
+        except ResponseError, e:
+            self.error("Creation failed, arguments: ", s)
+            self.error("                 error code: ", str(e))
+            self.notice(self.do_add.__doc__)
+        except IndexError, e:
+            self.error("Not enough arguments")
+            self.notice(self.do_add.__doc__)
+        except Exception, e: 
+            self.error("Creation failed, arguments: ", s)
+            self.error("                 error code: ", str(e))
+            self.notice(self.do_add.__doc__)
+        else:
+            self.forceupdate = True
+            self.do_list()
+
     do_create = do_add
 
     def do_delete(self, s):
@@ -64,8 +81,11 @@ class domain_shell(base_shell):
     """
         try:
             self.domain.delete_record(s)
-        except:
-            pass
+        except ResponseError, e:
+            self.error("Record Deletion Failed with status: ", e)
+        else:
+            self.forceupdate = True
+            self.do_list()
     do_del = do_delete
 
     def do_ttl(self, s):
@@ -76,8 +96,10 @@ class domain_shell(base_shell):
     """
         try:
             self.domain.update(ttl=s)
-        except:
-            pass
+        except ResponseError, e:
+            self.error("TTL change failed with status status: ", e)
+        else:
+            self.forceupdate = True
 
     def do_email(self, s):
         """Configure Email Address contact for domain
@@ -87,5 +109,5 @@ class domain_shell(base_shell):
     """
         try:
             self.domain.update(emailAddress=s)
-        except:
-            pass
+        except ResponseError, e:
+            self.error("Email change failed with status status: ", e)
