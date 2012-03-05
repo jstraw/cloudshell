@@ -16,20 +16,24 @@ class base_shell(cmd.Cmd, object):
 
     do_exit = do_EOF
 
-    def error(self, text):
+    def error(self, text, *args):
         c_error = color.set('purple', bold=True)
+        text += ' ' + ' '.join(args)
         print c_error, "Error:", text, color.clear()
 
-    def alert(self, text):
+    def alert(self, text, *args):
         c_alert = color.set('red')
+        text += ' ' + ' '.join(args)
         print c_alert, text, color.clear()
 
-    def warning(self, text):
+    def warning(self, text, *args):
         c_warn = color.set('yellow', bold=True)
+        text += ' ' + ' '.join(args)
         print c_warn, text, color.clear()
 
-    def notice(self, text):
+    def notice(self, text, *args):
         c_notice = color.set('green')
+        text += ' ' + ' '.join(args)
         print c_notice, text, color.clear()
 
     def set_prompt(self, username, breadcrumbs):
@@ -45,11 +49,7 @@ class base_shell(cmd.Cmd, object):
         os.system(string)
 
     def do_python(self, string):
-        """Run a python command
-
-        This does not do ANY checking for syntax, 
-        nor does it do any exception handling.
-        """
-        if len(string):
-            pass
+        """Run a python debug shell"""
+        self.notice("Press c to return to cloudshell")
+        import pdb; pdb.set_trace()
 
