@@ -25,3 +25,6 @@ def get_dns_url(servers_url):
 
     dns_management_url.append(puri)
     return "".join(dns_management_url)
+
+def error_handler():
+    pass
