@@ -1,5 +1,8 @@
-from clouddns.consts import dns_management_host
+import contextlib
+
 import clouddns.utils
+from clouddns.consts import dns_management_host
+from clouddns.errors import ResponseError
 
 
 def get_dns_url(servers_url):
@@ -26,5 +29,21 @@ def get_dns_url(servers_url):
     dns_management_url.append(puri)
     return "".join(dns_management_url)
 
-def error_handler():
-    pass
+@contextlib.contextmanager
+def error_handler(cls, s):
+    try:
+        yield
+    except ResponseError, e:
+        cls.error("request failed, arguments: ", s)
+        cls.error("                 error code: ", str(e))
+        cls.notice(cls.do_add.__doc__)
+    except IndexError, e:
+        cls.error("Not enough arguments")
+        cls.notice(cls.do_add.__doc__)
+    except Exception, e:
+        cls.error("request failed, arguments: ", s)
+        cls.error("                 error code: ", str(e))
+        cls.notice(cls.do_add.__doc__)
+    else:
+        cls.forceupdate = True
+        cls.do_list('')

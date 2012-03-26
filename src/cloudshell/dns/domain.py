@@ -53,24 +53,9 @@ class domain_shell(base_shell):
             self.error("You need an MX Priority when you make a MX record")
         elif len(args) < 5:
             args.append(None)
-        try:
+        with error_handler(self, s):
             self.domain.create_record(args[1], args[2], args[0].upper(), 
                                       args[3], args[4])
-        except ResponseError, e:
-            self.error("Creation failed, arguments: ", s)
-            self.error("                 error code: ", str(e))
-            self.notice(self.do_add.__doc__)
-        except IndexError, e:
-            self.error("Not enough arguments")
-            self.notice(self.do_add.__doc__)
-        except Exception, e: 
-            self.error("Creation failed, arguments: ", s)
-            self.error("                 error code: ", str(e))
-            self.notice(self.do_add.__doc__)
-        else:
-            self.forceupdate = True
-            self.do_list()
-
     do_create = do_add
 
     def do_delete(self, s):
@@ -79,13 +64,8 @@ class domain_shell(base_shell):
     Usage:
         delete <Record ID>
     """
-        try:
+        with error_handler(self, s):
             self.domain.delete_record(s)
-        except ResponseError, e:
-            self.error("Record Deletion Failed with status: ", e)
-        else:
-            self.forceupdate = True
-            self.do_list()
     do_del = do_delete
 
     def do_ttl(self, s):
@@ -94,12 +74,8 @@ class domain_shell(base_shell):
     Usage:
         ttl <seconds>
     """
-        try:
+        with error_handler(self, s):
             self.domain.update(ttl=s)
-        except ResponseError, e:
-            self.error("TTL change failed with status status: ", e)
-        else:
-            self.forceupdate = True
 
     def do_email(self, s):
         """Configure Email Address contact for domain
@@ -107,7 +83,5 @@ class domain_shell(base_shell):
     Usage:
         email <user@domain.com>
     """
-        try:
+        with error_handler(self, s):
             self.domain.update(emailAddress=s)
-        except ResponseError, e:
-            self.error("Email change failed with status status: ", e)
