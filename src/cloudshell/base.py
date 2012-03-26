@@ -37,10 +37,10 @@ class base_shell(cmd.Cmd, object):
         print c_notice, text, color.clear()
 
     def set_prompt(self, username, breadcrumbs):
-        c_pri = color.set('cyan')
-        c_un = color.set('blue', bold=True)
+        c_pri = color.set('green')
+        c_un = color.set('cyan')
         c_d = color.set('green')
-        self.prompt = c_pri + 'CloudShell ' + c_un + username + \
+        self.prompt = c_pri + 'CS ' + c_un + username + \
                        c_pri + ' ' + ' > '.join(breadcrumbs) + \
                        c_d + '$ ' + color.clear()
 
