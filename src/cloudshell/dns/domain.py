@@ -58,6 +58,30 @@ class domain_shell(base_shell):
                                       args[3], args[4])
     do_create = do_add
 
+    def do_update(self, s):
+        """Update a record:
+
+    Usage:
+        update comment <Record ID> <Comment> 
+        update target <Record ID> <IP/Alias> 
+        update ttl <Record ID>
+    """
+        args = shlex.split(s)
+        if args[0] not in ('comment','target','ttl') or args[1] not in [ x.id for x in self.records]:
+            return
+
+        for x in self.records:
+            if x.id == args[1]:
+                record = x
+                break
+        with error_handler(self, s):
+            if args[0] == 'comment':
+                record.update(comment=args[2:].join(' '))
+            elif args[0] == 'target':
+                record.update(data=args[2])
+            elif args[0] == 'ttl':
+                record.update(ttl=args[2])
+
     def do_delete(self, s):
         """Delete a record:
 
