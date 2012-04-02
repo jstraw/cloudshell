@@ -53,6 +53,18 @@ class lb_single_shell(base_shell):
 
         table.add_row(['ID / Name', str(self.lb.id) + ' / ' + self.lb.name])
         table.add_row(['Status', self.lb.status])
+        if self.lb.protocol == 'HTTP':
+            self.sslt = self.lb.ssl_termination().get()
+            if self.sslt == None:
+                table.add_row(['SSL Termination', 'Not Configured'])
+            elif self.sslt.enabled and not self.sslt.secureonly:
+                table.add_row(['SSL Termination', 'Running on Port %s' % (self.sslt.port)])
+            elif self.sslt.enabled and self.sslt.secureonly:
+                table.add_row(['SSL Termination', 'Running on Port %s and port %s is closed' % (self.sslt.port, self.lb.port)])
+            elif not self.sslt.enabled and not self.sslt.secureonly:
+                table.add_row(['SSL Termination', 'Disabled for Port %s' % (self.sslt.port)])
+            else:
+                table.add_row(['SSL Termination', 'Disabled for Port %s, will close port %s when enabled' % (self.sslt.port, self.lb.port)])
         table.add_row(['IPs', vips[0]])
         for x in vips[1:]:
             table.add_row(['', x])

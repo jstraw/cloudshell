@@ -52,6 +52,9 @@ class lb_shell(base_shell):
     
     Note: If there are multiple options, it will list those for you to choose between.
     """
+        if len(s) == 0:
+            self.error(self.do_select.__doc__)
+            return
         if self.lbs == None:
             self.update_lbs()
         options = []
