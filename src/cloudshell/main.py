@@ -1,3 +1,5 @@
+import shlex
+
 from cloudshell.base import base_shell
 import cloudshell.auth
 import cloudshell.dns
@@ -39,13 +41,37 @@ class main_shell(base_shell):
     def __init__(self, username, apikey, is_uk=False, snet=False,
                  auth_version="1.0"):
         base_shell.__init__(self)
-        self.auth_token, self.server_url, self.files_url, self.files_cdn_url = \
-                cloudshell.auth.get_auth(username, apikey, is_uk, snet,
-                                         auth_version)
         self.username = username
         self.apikey = apikey
         self.is_uk = is_uk
-        self.set_prompt(username, [])
+        self.snet = snet
+        self.auth_version = auth_version
+        self.do_auth("")
+
+    def do_auth(self, s):
+        "Auth and setup auth variables"
+        args = shlex.split(s)
+        if args:
+            if len(args) < 2:
+                print("usage: auth username apikey [is_uk] [snet] [auth_version]")
+                return
+            self.username = args[0]
+            self.apikey = args[1]
+            if len(args) == 3:
+                self.is_uk = eval(args[2].capitalize())
+            if len(args) == 4:
+                self.snet = eval(args[3].capitalize())
+            if len(args) == 5:
+                self.auth_version = args[4]
+        try:
+            values = cloudshell.auth.get_auth(self.username, self.apikey,
+                                              self.is_uk, self.snet,
+                                              self.auth_version)
+            (self.auth_token, self.server_url,
+             self.files_url, self.files_cdn_url) = values
+            self.set_prompt(self.username, [])
+        except cloudshell.auth.ClientException:
+            print("Auth failed for user %s with key %s" % (self.username, self.apikey))
 
     def do_dns(self, s):
         "Maintain DNS entries"
@@ -66,7 +92,7 @@ class main_shell(base_shell):
         else:
             self.servers.cmdloop()
 
-    def do_lb(self,s):
+    def do_lb(self, s):
         "Maintain Cloud Load Balancers"
         if len(s) == 0:
             self.error("Load Balancers *require* a region.")
@@ -83,7 +109,6 @@ class main_shell(base_shell):
                 else:
                     self.lb.cmdloop()
                     
-
     def do_files(self, s):
         "Maintain Cloud Files"
         pass
