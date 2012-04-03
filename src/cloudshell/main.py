@@ -1,4 +1,5 @@
 import shlex
+import readline
 
 from cloudshell.base import base_shell
 import cloudshell.auth
@@ -48,6 +49,13 @@ class main_shell(base_shell):
         self.auth_version = auth_version
         self.do_auth("")
 
+    def postloop(self):
+        super(main_shell, self).postloop()
+        try:
+            readline.write_history_file(self._history_file)
+        except IOError:
+            pass
+
     def do_auth(self, s):
         "Auth and setup auth variables"
         args = shlex.split(s)
@@ -55,6 +63,11 @@ class main_shell(base_shell):
             if len(args) < 2:
                 print("usage: auth username apikey [is_uk] [snet] [auth_version]")
                 return
+            if not self.username == args[0]:
+                readline.write_history_file(self._history_file)
+                readline.clear_history()
+                self._history_file = "%s-%s" % (self._history_file_base,
+                                                self.username)
             self.username = args[0]
             self.apikey = args[1]
             if len(args) == 3:
@@ -76,8 +89,17 @@ class main_shell(base_shell):
             self.servers = None
             self.lb = None
             self.files = None
+            
+            self._history_file = "%s-%s" % (self._history_file_base,
+                                            self.username)        
+            try:
+                readline.read_history_file(self._history_file)
+            except IOError:
+                pass
+            
         except cloudshell.auth.ClientException:
-            print("Auth failed for user %s with key %s" % (self.username, self.apikey))
+            self.error("Auth failed for user %s with key %s" % \
+                       (self.username, self.apikey))
 
     def do_dns(self, s):
         "Maintain DNS entries"
@@ -118,6 +140,9 @@ class main_shell(base_shell):
     def do_files(self, s):
         "Maintain Cloud Files"
         pass
+
+    def do_p(self, s):
+        print(eval(s))
 
     def do_colortest(self, s):
         for name in color.color_codes.keys():
