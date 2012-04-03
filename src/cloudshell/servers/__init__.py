@@ -16,7 +16,7 @@ class servers_shell(base_shell):
     def __init__(self, main_shell):
         base_shell.__init__(self)
         self.main_shell = main_shell
-        if main_shell.isuk:
+        if main_shell.is_uk:
             self.api = novaclient.v1_0.client.Client(main_shell.username, 
                                                      main_shell.apikey, 
                                                      None,

@@ -22,7 +22,7 @@ class main_shell(base_shell):
     # Placeholders for required public variables
     username = None
     apikey = None
-    isuk = None
+    is_uk = None
 
     # Placeholders for required auth information, generated as we load API
     auth_token = None
@@ -36,13 +36,15 @@ class main_shell(base_shell):
     # Load Balancer (and any other) regions
     regions = ['ord', 'dfw', 'lon']
 
-    def __init__(self, username, apikey, isuk=False):
+    def __init__(self, username, apikey, is_uk=False, snet=False,
+                 auth_version="1.0"):
         base_shell.__init__(self)
-        (self.auth_token, self.server_url, self.files_url, self.files_cdn_url) = \
-                cloudshell.auth.auth(username, apikey, isuk)
+        self.auth_token, self.server_url, self.files_url, self.files_cdn_url = \
+                cloudshell.auth.get_auth(username, apikey, is_uk, snet,
+                                         auth_version)
         self.username = username
         self.apikey = apikey
-        self.isuk = isuk
+        self.is_uk = is_uk
         self.set_prompt(username, [])
 
     def do_dns(self, s):

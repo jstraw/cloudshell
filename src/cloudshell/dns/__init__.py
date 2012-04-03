@@ -15,7 +15,7 @@ class dns_shell(base_shell):
         base_shell.__init__(self)
         self.main_shell = main_shell
         self.dns_url = main_shell.dns_url
-        if main_shell.isuk:
+        if main_shell.is_uk:
             self.api = clouddns.connection.Connection(username=main_shell.username, 
                                                       api_key=main_shell.apikey,
                                                       authurl=uk_authurl)
