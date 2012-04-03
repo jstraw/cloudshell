@@ -39,18 +39,25 @@ def main():
                         help="Rackspace Cloud Username")
     parser.add_argument("-k", "--apikey", dest="apikey", 
                         help="Rackspace Cloud API Key")
-    parser.add_argument("--uk", action="store_true", dest="isuk", 
+    parser.add_argument("--uk", action="store_true", dest="is_uk", 
                         help="Account is from Rackspace Cloud UK", 
                         default=False)
+    parser.add_argument("--snet", action="store_true", dest="snet", 
+                        help="Use internal Service Network", 
+                        default=False)
+    parser.add_argument("--auth_version", dest="auth_version", 
+                        help="Use a specific auth version (default: 1.0)", 
+                        default="1.0")
     if csextensions.args is not None:
         parser = csextensions.args(parser)
     args = parser.parse_args()
 
     args = csextensions.preshell(args)
 
-    if len(args.username) > 0 and len(args.apikey) > 0:
+    if args.username and args.apikey:
         try:
-            shell = main_shell(args.username,args.apikey, args.isuk)
+            shell = main_shell(args.username, args.apikey, args.is_uk, args.snet,
+                               args.auth_version)
         except NameError:
             print "You must enter a Username and API Key to use Cloudshell"
         else:
@@ -59,3 +66,7 @@ def main():
             shell.cmdloop('Welcome to Rackspace Cloud API Shell\nYou are logged in as: ' + args.username)
     else:
         parser.print_help()
+        
+if __name__ == "__main__":
+    main()
+

@@ -7,7 +7,7 @@ import cloudlb
 from cloudshell.utils import color
 from cloudshell.base import base_shell
 from cloudshell.lb.lb import lb_single_shell
-
+from cloudshell.auth import us_authurl_v1_1, uk_authurl_v1_1
 
 class lb_shell(base_shell):
     def __init__(self, main_shell, region):
@@ -16,6 +16,14 @@ class lb_shell(base_shell):
         self.api = cloudlb.CloudLoadBalancer(username=main_shell.username, 
                                              api_key=main_shell.apikey,
                                              region=region)
+        
+        # prevent client from trying to auth, since we've already done so
+        # _cloudlb_request only auths if management_url is None
+        self.api.auth_token = main_shell.auth_token
+        self.account_number = main_shell.server_url.split("/")[-1]
+        self.region_account_url = "%s/%s" % (cloudlb.consts.REGION_URL % region,
+                                             self.account_number)
+
         self.set_prompt(main_shell.username, ['Load Balancer', region])
         self.region = region
         self.lbs = None
