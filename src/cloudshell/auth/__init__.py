@@ -52,6 +52,9 @@ except ImportError:
 us_authurl_v1_0 = "https://auth.api.rackspacecloud.com/v1.0"
 uk_authurl_v1_0 = "https://lon.auth.api.rackspacecloud.com/v1.0"
 
+us_authurl_v1_1 = "https://auth.api.rackspacecloud.com/v1.1"
+uk_authurl_v1_1 = "https://lon.auth.api.rackspacecloud.com/v1.1"
+
 us_authurl_v2_0 = "https://auth.api.rackspacecloud.com/v2.0/tokens"
 uk_authurl_v2_0 = "https://lon.auth.api.rackspacecloud.com/v2.0/tokens"
 

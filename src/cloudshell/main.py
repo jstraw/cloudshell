@@ -69,7 +69,13 @@ class main_shell(base_shell):
                                               self.auth_version)
             (self.auth_token, self.server_url,
              self.files_url, self.files_cdn_url) = values
+            
             self.set_prompt(self.username, [])
+            
+            self.dns = None
+            self.servers = None
+            self.lb = None
+            self.files = None
         except cloudshell.auth.ClientException:
             print("Auth failed for user %s with key %s" % (self.username, self.apikey))
 
