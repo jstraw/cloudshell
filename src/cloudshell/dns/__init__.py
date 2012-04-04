@@ -42,7 +42,7 @@ class dns_shell(base_shell):
             authurl = us_authurl
 
         auth = AuthWrapper(username=main_shell.username, api_key=main_shell.apikey,
-                           authurl=us_authurl, useragent=user_agent)
+                           authurl=authurl, useragent=user_agent)
         auth.auth_token = main_shell.auth_token
         auth.server_url = main_shell.server_url
 
