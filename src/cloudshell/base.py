@@ -3,11 +3,21 @@
 
 import cmd
 import os
+import readline
 
 
 from cloudshell.utils import color
 
 class base_shell(cmd.Cmd, object):
+
+    _history_file_base = os.path.expanduser("~/.cloudshell/history")
+
+    def do_history(self, string):
+        for i in range(1, min(20, readline.get_current_history_length())):
+            print(readline.get_history_item(i))
+
+    do_hist = do_history
+
     def do_EOF(self, string):
         # make sure that the new prompt (either internal or returned to shell)
         # is on its own line.

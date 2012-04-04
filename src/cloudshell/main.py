@@ -1,3 +1,6 @@
+import shlex
+import readline
+
 from cloudshell.base import base_shell
 import cloudshell.auth
 import cloudshell.dns
@@ -22,7 +25,7 @@ class main_shell(base_shell):
     # Placeholders for required public variables
     username = None
     apikey = None
-    isuk = None
+    is_uk = None
 
     # Placeholders for required auth information, generated as we load API
     auth_token = None
@@ -36,14 +39,67 @@ class main_shell(base_shell):
     # Load Balancer (and any other) regions
     regions = ['ord', 'dfw', 'lon']
 
-    def __init__(self, username, apikey, isuk=False):
+    def __init__(self, username, apikey, is_uk=False, snet=False,
+                 auth_version="1.0"):
         base_shell.__init__(self)
-        (self.auth_token, self.server_url, self.files_url, self.files_cdn_url) = \
-                cloudshell.auth.auth(username, apikey, isuk)
         self.username = username
         self.apikey = apikey
-        self.isuk = isuk
-        self.set_prompt(username, [])
+        self.is_uk = is_uk
+        self.snet = snet
+        self.auth_version = auth_version
+        self.do_auth("")
+
+    def postloop(self):
+        super(main_shell, self).postloop()
+        try:
+            readline.write_history_file(self._history_file)
+        except IOError:
+            pass
+
+    def do_auth(self, s):
+        "Auth and setup auth variables"
+        args = shlex.split(s)
+        if args:
+            if len(args) < 2:
+                print("usage: auth username apikey [is_uk] [snet] [auth_version]")
+                return
+            if not self.username == args[0]:
+                readline.write_history_file(self._history_file)
+                readline.clear_history()
+                self._history_file = "%s-%s" % (self._history_file_base,
+                                                self.username)
+            self.username = args[0]
+            self.apikey = args[1]
+            if len(args) == 3:
+                self.is_uk = eval(args[2].capitalize())
+            if len(args) == 4:
+                self.snet = eval(args[3].capitalize())
+            if len(args) == 5:
+                self.auth_version = args[4]
+        try:
+            values = cloudshell.auth.get_auth(self.username, self.apikey,
+                                              self.is_uk, self.snet,
+                                              self.auth_version)
+            (self.auth_token, self.server_url,
+             self.files_url, self.files_cdn_url) = values
+            
+            self.set_prompt(self.username, [])
+            
+            self.dns = None
+            self.servers = None
+            self.lb = None
+            self.files = None
+            
+            self._history_file = "%s-%s" % (self._history_file_base,
+                                            self.username)        
+            try:
+                readline.read_history_file(self._history_file)
+            except IOError:
+                pass
+            
+        except cloudshell.auth.ClientException:
+            self.error("Auth failed for user %s with key %s" % \
+                       (self.username, self.apikey))
 
     def do_dns(self, s):
         "Maintain DNS entries"
@@ -64,7 +120,7 @@ class main_shell(base_shell):
         else:
             self.servers.cmdloop()
 
-    def do_lb(self,s):
+    def do_lb(self, s):
         "Maintain Cloud Load Balancers"
         if len(s) == 0:
             self.error("Load Balancers *require* a region.")
@@ -81,10 +137,12 @@ class main_shell(base_shell):
                 else:
                     self.lb.cmdloop()
                     
-
     def do_files(self, s):
         "Maintain Cloud Files"
         pass
+
+    def do_p(self, s):
+        print(eval(s))
 
     def do_colortest(self, s):
         for name in color.color_codes.keys():

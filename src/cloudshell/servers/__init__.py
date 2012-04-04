@@ -6,27 +6,35 @@ import json
 
 import prettytable
 import novaclient.v1_0.client
-from clouddns.consts import uk_authurl, us_authurl
 
 from cloudshell.base import base_shell
 from cloudshell.utils import color
+from cloudshell.auth import us_authurl_v1_0, uk_authurl_v1_0
 
 
 class servers_shell(base_shell):
     def __init__(self, main_shell):
         base_shell.__init__(self)
         self.main_shell = main_shell
-        if main_shell.isuk:
+        if main_shell.is_uk:
             self.api = novaclient.v1_0.client.Client(main_shell.username, 
                                                      main_shell.apikey, 
                                                      None,
-                                                     uk_authurl)
-
+                                                     uk_authurl_v1_0)
+            self.api.auth_url = uk_authurl_v1_0
+        
         else:
             self.api = novaclient.v1_0.client.Client(main_shell.username, 
                                                      main_shell.apikey, 
                                                      None,
-                                                     us_authurl)
+                                                     us_authurl_v1_0)
+            self.api.auth_url = us_authurl_v1_0
+
+        # prevent client from trying to auth, since we've already done so
+        # _cs_request only auths if management_url is None
+        self.api.management_url = main_shell.server_url
+        self.api.auth_token = main_shell.auth_token
+
         self.set_prompt(main_shell.username, ['Servers'])
         self.servers = None
         self.images = None
