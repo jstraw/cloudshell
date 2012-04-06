@@ -12,6 +12,15 @@ class base_shell(cmd.Cmd, object):
 
     _history_file_base = os.path.expanduser("~/.cloudshell/history")
 
+    # XXX: why is this needed to make empty string not execute the last command?
+    def precmd(self, string):
+        if not string:
+            return "noop"
+        return string
+
+    def do_noop(self, string):
+        return
+
     def do_history(self, string):
         for i in range(1, min(20, readline.get_current_history_length())):
             print(readline.get_history_item(i))

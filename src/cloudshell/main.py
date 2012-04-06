@@ -61,21 +61,24 @@ class main_shell(base_shell):
         args = shlex.split(s)
         if args:
             if len(args) < 2:
-                print("usage: auth username apikey [is_uk] [snet] [auth_version]")
+                print("usage: auth [username apikey] [is_uk] [snet] [auth_version]\n"
+                      "with no args, reauths with current username and apikey\n"
+                      "with args, at least username and apikey are required")
                 return
+
             if not self.username == args[0]:
                 readline.write_history_file(self._history_file)
                 readline.clear_history()
-                self._history_file = "%s-%s" % (self._history_file_base,
-                                                self.username)
+
             self.username = args[0]
             self.apikey = args[1]
-            if len(args) == 3:
+            if len(args) > 2:
                 self.is_uk = eval(args[2].capitalize())
-            if len(args) == 4:
+            if len(args) > 3:
                 self.snet = eval(args[3].capitalize())
-            if len(args) == 5:
+            if len(args) > 4:
                 self.auth_version = args[4]
+
         try:
             values = cloudshell.auth.get_auth(self.username, self.apikey,
                                               self.is_uk, self.snet,
@@ -96,10 +99,16 @@ class main_shell(base_shell):
                 readline.read_history_file(self._history_file)
             except IOError:
                 pass
-            
+                        
         except cloudshell.auth.ClientException:
             self.error("Auth failed for user %s with key %s" % \
                        (self.username, self.apikey))
+
+    def do_showauth(self, s):
+        print("X-Auth-Token: %s\nX-Storage-Url: %s\n"
+              "X-Server-Management-Url: %s\nX-Cdn-Management-Url: %s" %
+              (self.auth_token, self.files_url, self.server_url,
+               self.files_cdn_url))
 
     def do_dns(self, s):
         "Maintain DNS entries"
