@@ -9,4 +9,6 @@ Authors
 =======
 
 - Jason Straw <jason.straw@rackspace.com>
+- Jordan Callicoat <jordan.callicoat@rackspace.com>
+   Authentication and History
 - Caleb Groom <caleb.groom@rackspace.com>
