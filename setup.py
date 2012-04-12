@@ -12,7 +12,7 @@ install_requires = [
     # List your project dependencies here.
     # For more details, see:
     # http://packages.python.org/distribute/setuptools.html#declaring-dependencies
-    'python-novaclient <= 2.6.0',
+    'python-novaclient == 2.6.0',
     'python-cloudlb >= 0.3',
     'python-cloudfiles >= 1.7.9.0',
     'python-clouddns'
