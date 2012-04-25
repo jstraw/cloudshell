@@ -59,11 +59,16 @@ class servers_shell(base_shell):
         slist.set_field_align('Private Address', 'l')
         s = self.strip_refresh.sub(' ', s)
         for x in self.servers:
-            if (len(s) == 0 or s in x.name or s in x.addresses['public'][0] 
-                    or s in x.addresses['private'][0]):
+            if (not s or
+                int(s) == x.id or
+                s in x.name or
+                s in x.addresses['public'][0] or
+                s in x.addresses['private'][0]):
                 slist.add_row([x.id, x.name, x.status, 
                     '\n'.join(x.addresses['public']), 
                     '\n'.join(x.addresses['private'])])
+                if s:
+                    break
         slist.printt(sortby='Server ID')
         self.do_tally(s)
     do_ls = do_list
@@ -109,14 +114,13 @@ class servers_shell(base_shell):
         list - list all images (with parent server)
         create - (not complete) <server id or name> <name to call the image>
         """
-        self.notice("Getting Image List")
         if self.images == None or 'refresh' in s:
+            self.notice("Getting Image List")
             self.images = self.api.images.list()
-        if self.servers is None:
+        if self.servers is None or 'refresh' in s:
             self.notice("Getting Server List")
-            if self.servers is None:
-                self.servers = self.api.servers.list()
-        if s[:4] == 'list':
+            self.servers = self.api.servers.list()
+        if not s or s[:4] == 'list':
             slist = {}
             for s in self.servers:
                 slist[s.id] = s.name
@@ -173,11 +177,11 @@ class servers_shell(base_shell):
         files = False
         try:
             name = args[0]
-            image = args[1]
-            flavor = args[2]
+            image = int(args[1])
+            flavor = int(args[2])
         except:
-            self.error("boot/create requires at least 3 \
-                    arguments: name image flavor")
+            self.error("boot/create requires at least 3 " \
+                       "arguments: name image flavor")
             return
         if len(args) > 3:
             for x in args[3:]:
@@ -186,7 +190,27 @@ class servers_shell(base_shell):
                 elif x == 'dofiles':
                     files = True
 
+        # TODO: metadata and file injection stuff
+        self.api.servers.create(name, image, flavor)
+        self.do_ls(name)
+
     do_create = do_boot
+
+    def do_delete(self, s):
+        """Delete a Server:
+        Name or ID - Delete first server with corresponding name or ID
+        """
+        s = shlex.split(s)[0]
+        if self.servers == None:
+            self.servers = self.api.servers.list()
+        for x in self.servers:
+            if s == x.name or int(s) == x.id:
+                yes = raw_input("Are you sure you want to delete server %s? " % x.id)
+                if yes in ("Y", "y", "yes"):
+                    self.api.servers.delete(x.id)
+        self.servers = self.api.servers.list()
+
+    do_rm = do_delete
 
     def do_python(self, s):
         import pdb; pdb.set_trace()
