@@ -208,6 +208,7 @@ class servers_shell(base_shell):
                 yes = raw_input("Are you sure you want to delete server %s? " % x.id)
                 if yes in ("Y", "y", "yes"):
                     self.api.servers.delete(x.id)
+                break
         self.servers = self.api.servers.list()
 
     do_rm = do_delete
