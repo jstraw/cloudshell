@@ -15,6 +15,7 @@ class base_shell(cmd.Cmd, object):
     # XXX: why is this needed to make empty string not execute the last command?
     def emptyline(self):
         pass
+
     def do_history(self, string):
         for i in range(1, min(20, readline.get_current_history_length())):
             print(readline.get_history_item(i))
@@ -65,4 +66,11 @@ class base_shell(cmd.Cmd, object):
         """Run a python debug shell"""
         self.notice("Press c to return to cloudshell")
         import pdb; pdb.set_trace()
+
+    def do_p(self, s):
+        """Evaluate a python expression and print the result"""
+        try:
+            print(eval(s))
+        except:
+            pass
 
