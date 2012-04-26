@@ -67,8 +67,12 @@ class lb_shell(base_shell):
             self.update_lbs()
         options = []
         for lb in self.lbs:
-            if int(s) == lb.id or s in lb.name or s in lb.nodes or s in lb.virtualIps:
-                options.append(lb)
+            try:
+                if int(s) == lb.id:
+                    options.append(lb)
+            except ValueError:
+                if s in lb.name or s in lb.nodes or s in lb.virtualIps:
+                    options.append(lb)
         if len(options) == 0:
             self.warning("No Load Balancer found matching " + s)
         elif len(options) > 1:
@@ -88,9 +92,7 @@ class lb_shell(base_shell):
                 options = [options[lb]]
             else:
                 for o in options:
-                    print lb, o.id
                     if lb == o.id:
-                        print 'win'
                         options = [o]
                         break
         if len(options) == 1:
