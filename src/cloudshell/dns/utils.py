@@ -1,4 +1,6 @@
+import sys
 import contextlib
+import traceback
 
 import clouddns.utils
 from clouddns.consts import dns_management_host
@@ -34,16 +36,19 @@ def error_handler(cls, s):
     try:
         yield
     except ResponseError, e:
+        doc = eval("cls." + traceback.extract_tb(sys.exc_info()[2])[1][2] + ".__doc__")
         cls.error("request failed, arguments: ", s)
         cls.error("                 error code: ", str(e))
-        cls.notice(cls.do_add.__doc__)
+        cls.notice(doc)
     except IndexError, e:
+        doc = eval("cls." + traceback.extract_tb(sys.exc_info()[2])[1][2] + ".__doc__")
         cls.error("Not enough arguments")
-        cls.notice(cls.do_add.__doc__)
+        cls.notice(doc)
     except Exception, e:
+        doc = eval("cls." + traceback.extract_tb(sys.exc_info()[2])[1][2] + ".__doc__")
         cls.error("request failed, arguments: ", s)
         cls.error("                 error code: ", str(e))
-        cls.notice(cls.do_add.__doc__)
+        cls.notice(doc)
     else:
         cls.forceupdate = True
         cls.do_list('')
