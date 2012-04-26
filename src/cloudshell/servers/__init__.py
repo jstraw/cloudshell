@@ -3,32 +3,33 @@ import shlex
 import re
 import urllib2
 import json
+import contextlib
 
 import prettytable
 import novaclient.v1_0.client
+import novaclient.exceptions as s_exc
 
 from cloudshell.base import base_shell
 from cloudshell.utils import color
 from cloudshell.auth import us_authurl_v1_0, uk_authurl_v1_0
 
+@contextlib.contextmanager
+def error_handler(cls, s):
+    yield
 
 class servers_shell(base_shell):
     def __init__(self, main_shell):
         base_shell.__init__(self)
         self.main_shell = main_shell
         if main_shell.is_uk:
-            self.api = novaclient.v1_0.client.Client(main_shell.username, 
-                                                     main_shell.apikey, 
-                                                     None,
-                                                     uk_authurl_v1_0)
-            self.api.auth_url = uk_authurl_v1_0
-        
+            self.auth_url = uk_authurl_v1_0
         else:
-            self.api = novaclient.v1_0.client.Client(main_shell.username, 
-                                                     main_shell.apikey, 
-                                                     None,
-                                                     us_authurl_v1_0)
-            self.api.auth_url = us_authurl_v1_0
+            self.auth_url = us_authurl_v1_0
+
+        self.api = novaclient.v1_0.client.Client(main_shell.username, 
+                                                 main_shell.apikey, 
+                                                 None,
+                                                 self.auth_url)
 
         # prevent client from trying to auth, since we've already done so
         # _cs_request only auths if management_url is None
@@ -38,6 +39,7 @@ class servers_shell(base_shell):
         self.set_prompt(main_shell.username, ['Servers'])
         self.servers = None
         self.images = None
+        self.limits = None
         self.flavors = self.api.flavors.list()
         self.strip_refresh = re.compile('\brefresh\b')
 
@@ -49,6 +51,7 @@ class servers_shell(base_shell):
         """
         if self.servers == None or 'refresh' in s:
             self.servers = self.api.servers.list()
+        if self.limits == None: self._limits()
         slist = prettytable.PrettyTable(['Server ID', 'Server Name', 
                                          'Status', 'Public Address(es)', 
                                          'Private Address'])
@@ -66,6 +69,7 @@ class servers_shell(base_shell):
                     '\n'.join(x.addresses['private'])])
         slist.printt(sortby='Server ID')
         self.do_tally(s)
+        print "Account Global Limit is:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
     do_ls = do_list
 
     def do_tally(self, s):
@@ -81,7 +85,7 @@ class servers_shell(base_shell):
                 tally += f_ram[x.flavorId]
         print "Account is using", float(tally)/1024.0, "GB of RAM"
 
-    def do_limits(self, s):
+    def _limits(self):
         headers = {"X-Auth-Token": self.main_shell.auth_token,
                    "Accept":  'application/json'}
         req = urllib2.Request(self.main_shell.server_url + '/limits', None, headers)
@@ -92,6 +96,10 @@ class servers_shell(base_shell):
             self.error("Failed to get limits")
             print self.main_shell.server_url + '/limits'
             raise
+
+    def do_limits(self, s):
+        if self.limits == None:
+            self._limits()
         print "    Server Limits (Absolute)"
         print "Total RAM:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
         print "    Server Rate Limits:"
@@ -169,12 +177,12 @@ class servers_shell(base_shell):
         dofiles - create a fileset to inject into the server on create
         """
         args = shlex.split(s)
-        meta = False
-        files = False
+        meta = None
+        files = None
         try:
             name = args[0]
-            image = args[1]
-            flavor = args[2]
+            image = int(args[1])
+            flavor = int(args[2])
         except:
             self.error("boot/create requires at least 3 \
                     arguments: name image flavor")
@@ -185,8 +193,56 @@ class servers_shell(base_shell):
                     meta = True
                 elif x == 'dofiles':
                     files = True
+        if meta:
+            print " --- Metadata ---"
+            print "Type . as a key to end the list"
+            meta = {}
+            x = 1
+            while True:
+                k = raw_input("Metadata - Key %s: " % x)
+                if k == '.': break
+                v = raw_input("Metadata - Value %s: " % x)
+                if len(k) > 255 or len(v) > 255:
+                    print "Keys and Values must be under 255 characters"
+                else:
+                    meta[k] = v
+                    x += 1
+                if x == 5:
+                    break
+
+        if files:
+            print " --- Files ---"
+            print "Type . as a key to end the list"
+            files = {}
+            x = 1
+            while True:
+                k = raw_input("File - Name %s: " % x)
+                if k == '.': break
+                v = raw_input("File - path %s: " % x)
+                with open(v, 'r') as f:
+                    d = v.read()
+                if len(d) > 10240:
+                    print "File has to be under 10k in length"
+                else:
+                    files[k] = v
+                    x += 1
+                if x == 5:
+                    break
+
+        try:
+            self.api.servers.create(name, image, flavor, meta=meta, files=files)
+        except s_exc.ClientException as e:
+            self.error("Failed to create server")
+            self.error(str(e))
 
     do_create = do_boot
 
-    def do_python(self, s):
-        import pdb; pdb.set_trace()
+
+    def _show_server(self, server):
+        """Display the actual data for a server, assumes you are passing the actual object"""
+        s = server._info # Provides a Dictionary to play with
+        out = prettytable.PrettyTable(['Property', 'Value'])
+        pt.aligns = ['l', 'l']
+
+        pt.add_row(['Server ID', s.id])
+        pt.add_row(['Server Name', s.name])
