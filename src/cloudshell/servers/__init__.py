@@ -235,13 +235,10 @@ class servers_shell(base_shell):
 
         try:
             self.api.servers.create(name, image, flavor, meta=meta, files=files)
+            self.do_ls(name)
         except s_exc.ClientException as e:
             self.error("Failed to create server")
             self.error(str(e))
-
-        # TODO: metadata and file injection stuff
-        self.api.servers.create(name, image, flavor)
-        self.do_ls(name)
 
     do_create = do_boot
 
