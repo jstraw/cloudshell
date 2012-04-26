@@ -150,9 +150,6 @@ class main_shell(base_shell):
         "Maintain Cloud Files"
         pass
 
-    def do_p(self, s):
-        print(eval(s))
-
     def do_colortest(self, s):
         for name in color.color_codes.keys():
             print "% 4s %s% 6s" % ('', color.set(name), name),
