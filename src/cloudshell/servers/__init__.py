@@ -4,6 +4,7 @@ import re
 import urllib2
 import json
 import contextlib
+import traceback
 
 import prettytable
 import novaclient.v1_0.client
@@ -15,7 +16,13 @@ from cloudshell.auth import us_authurl_v1_0, uk_authurl_v1_0
 
 @contextlib.contextmanager
 def error_handler(cls, s):
-    yield
+    try:
+        yield
+    except s_exc.ClientException as e:
+        doc = eval("cls." + traceback.extract_tb(sys.exc_info()[2])[1][2] + ".__doc__")
+        cls.error("API returned an error on request:", s)
+        cls.error("Error:", str(e))
+        cls.notice(doc)
 
 class servers_shell(base_shell):
     def __init__(self, main_shell):
@@ -26,7 +33,8 @@ class servers_shell(base_shell):
         else:
             self.auth_url = us_authurl_v1_0
 
-        self.api = novaclient.v1_0.client.Client(main_shell.username, 
+        with error_handler(self, '(auth)'):
+            self.api = novaclient.v1_0.client.Client(main_shell.username, 
                                                  main_shell.apikey, 
                                                  None,
                                                  self.auth_url)
@@ -40,7 +48,8 @@ class servers_shell(base_shell):
         self.servers = None
         self.images = None
         self.limits = None
-        self.flavors = self.api.flavors.list()
+        with error_handler(self, '(flavors)'):
+            self.flavors = self.api.flavors.list()
         self.strip_refresh = re.compile('\brefresh\b')
 
     def do_list(self, s):
@@ -50,8 +59,10 @@ class servers_shell(base_shell):
         matching Server Name or a primary IP address.
         """
         if self.servers == None or 'refresh' in s:
-            self.servers = self.api.servers.list()
-        if self.limits == None: self._limits()
+            self._list_servers()
+        if self.limits == None: 
+            with error_handler(self, '(get limits)'):
+                self._limits()
         slist = prettytable.PrettyTable(['Server ID', 'Server Name', 
                                          'Status', 'Public Address(es)', 
                                          'Private Address'])
@@ -77,9 +88,24 @@ class servers_shell(base_shell):
         print "Account Global Limit is:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
     do_ls = do_list
 
+    def do_show(self, s):
+        """Show details about Server specified by name, id, or IP"""
+        if len(s) == 0:
+            self.error('Show requires a slice ID, name, or IP')
+            return
+        if self.servers == None:
+            self._list_servers()
+        for x in self.servers:
+            if (int(s) == x.id or 
+                s in x.name or 
+                s in x.addresses['public'][0] or 
+                s in x.addresses['public'][0]):
+                self._show_server(x)
+                break
+
     def do_tally(self, s):
         if self.servers == None or 'refresh' in s:
-            self.servers = self.api.servers.list()
+            self._list_servers()
         f_ram = {}
         for flavor in self.flavors:
             f_ram[flavor.id] = flavor.ram
@@ -89,18 +115,6 @@ class servers_shell(base_shell):
                    or s in x.addresses['private'][0]):
                 tally += f_ram[x.flavorId]
         print "Account is using", float(tally)/1024.0, "GB of RAM"
-
-    def _limits(self):
-        headers = {"X-Auth-Token": self.main_shell.auth_token,
-                   "Accept":  'application/json'}
-        req = urllib2.Request(self.main_shell.server_url + '/limits', None, headers)
-        try:
-            response = urllib2.urlopen(req)
-            self.limits = json.loads(response.read())['limits']
-        except urllib2.URLError:
-            self.error("Failed to get limits")
-            print self.main_shell.server_url + '/limits'
-            raise
 
     def do_limits(self, s):
         if self.limits == None:
@@ -124,10 +138,11 @@ class servers_shell(base_shell):
         """
         if self.images == None or 'refresh' in s:
             self.notice("Getting Image List")
-            self.images = self.api.images.list()
+            with error_handler(self, s):
+                self.images = self.api.images.list()
         if self.servers is None or 'refresh' in s:
             self.notice("Getting Server List")
-            self.servers = self.api.servers.list()
+            self._list_servers()
         if not s or s[:4] == 'list':
             slist = {}
             for s in self.servers:
@@ -155,11 +170,11 @@ class servers_shell(base_shell):
                     sid = server
                     break
             iname = args[1]
-            self.api.images.create(sid,iname)
+            with error_handler(self, s):
+                self.api.images.create(sid,iname)
 
     def do_flavors(self, s):
         """List Flavors"""
-        self.flavors = self.api.flavors.list()
         flist = prettytable.PrettyTable(['Flavor ID', 'Flavor Name', 
                                          'RAM', 'Disk'])
         flist.set_field_align('Flavor Name', 'l')
@@ -233,24 +248,13 @@ class servers_shell(base_shell):
                 if x == 5:
                     break
 
-        try:
-            self.api.servers.create(name, image, flavor, meta=meta, files=files)
+        with error_handler(self, s):
+            server = self.api.servers.create(name, image, flavor, meta=meta, files=files)
+            self._show_server(server)
             self.do_ls(name)
-        except s_exc.ClientException as e:
-            self.error("Failed to create server")
-            self.error(str(e))
 
     do_create = do_boot
 
-
-    def _show_server(self, server):
-        """Display the actual data for a server, assumes you are passing the actual object"""
-        s = server._info # Provides a Dictionary to play with
-        out = prettytable.PrettyTable(['Property', 'Value'])
-        pt.aligns = ['l', 'l']
-
-        pt.add_row(['Server ID', s.id])
-        pt.add_row(['Server Name', s.name])
 
     def do_delete(self, s):
         """Delete a Server:
@@ -258,16 +262,57 @@ class servers_shell(base_shell):
         """
         s = shlex.split(s)[0]
         if self.servers == None:
-            self.servers = self.api.servers.list()
+            self._list_servers()
         for x in self.servers:
             if s == x.name or int(s) == x.id:
                 yes = raw_input("Are you sure you want to delete server %s? " % x.id)
                 if yes in ("Y", "y", "yes"):
-                    self.api.servers.delete(x.id)
+                    with error_handler(self, s):
+                        self.api.servers.delete(x.id)
                 break
-        self.servers = self.api.servers.list()
+        self._list_servers()
 
     do_rm = do_delete
 
+    def _list_servers(self):
+        with error_handler(self, '(list servers)'):
+            self.servers = self.api.servers.list()
+
+
+    def _show_server(self, server):
+        """Display the actual data for a server, assumes you are passing the actual object"""
+        s = server._info # Provides a Dictionary to play with
+        pt = prettytable.PrettyTable(['Property', 'Value'])
+        pt.aligns = ['l', 'l']
+
+        pt.add_row(['Server ID', s['id']])
+        pt.add_row(['Server Name', s['name']])
+        for (k,v) in s.iteritems():
+            if k == 'addresses':
+                pt.add_row(['Public IPs', v['public'][0]])
+                if len(v['public']) > 1:
+                    for x in v['public'][1:]:
+                        pt.add_row(['', x])
+                pt.add_row(['Private IPs', v['private'][0]])
+                if len(v['private']) > 1:
+                    for x in v['private'][1:]:
+                        pt.add_row(['', x])
+            elif k not in ('id', 'name'):
+                pt.add_row([k.title(), v])
+        pt.printt()
+
+    def _limits(self):
+        headers = {"X-Auth-Token": self.main_shell.auth_token,
+                   "Accept":  'application/json'}
+        req = urllib2.Request(self.main_shell.server_url + '/limits', None, headers)
+        try:
+            response = urllib2.urlopen(req)
+            self.limits = json.loads(response.read())['limits']
+        except urllib2.URLError:
+            self.error("Failed to get limits")
+            print self.main_shell.server_url + '/limits'
+            raise
+
+ 
     def do_python(self, s):
         import pdb; pdb.set_trace()
