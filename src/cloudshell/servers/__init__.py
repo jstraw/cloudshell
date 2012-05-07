@@ -103,6 +103,57 @@ class servers_shell(base_shell):
                 self._show_server(x)
                 break
 
+    def do_reboot(self, s):
+        """Reboot a server:
+
+    Usage:
+        
+        reboot <ID/Name/IP> [hard|soft]"""
+        args = shlex.split(s)
+        if self.servers == None:
+            self._list_servers()
+        sid = args[0]
+        if args[1][0] in ('h', 'H'): t = 'Hard'
+        else: t = 'Soft'
+        for x in self.servers:
+            if (int(sid) == x.id or
+                sid in x.name or 
+                sid in x.addresses['public'][0] or 
+                sid in x.addresses['public'][0]):
+                ok = raw_input("%s Reboot %s (%d)? (Y/n) " % (t, x.name, x.id))
+                if ok[0].lower() == 'n':
+                    return
+                else:
+                    with error_handler(self, s):
+                        x.reboot(t.upper())
+                break
+    
+    def do_rescue(self, s):
+        """Toggle Rescue Mode on a server:
+
+    Usage:
+        
+        rescue <ID/Name/IP>"""
+        if self.servers == None:
+            self._list_servers()
+        for x in self.servers:
+            if (int(s) == x.id or
+                s in x.name or 
+                s in x.addresses['public'][0] or 
+                s in x.addresses['public'][0]):
+                ok = raw_input("%s Rescue %s (%d)? (Y/n) " % (t, x.name, x.id))
+                if ok[0].lower() == 'n':
+                    return
+                else:
+                    if x.status != 'RESCUE':
+                        with error_handler(self, s):
+                            x.rescue()
+                    else:
+                        with error_handler(self, s):
+                            x.unrescue()
+                break
+    do_unrescue = do_rescue
+
     def do_tally(self, s):
         if self.servers == None or 'refresh' in s:
             self._list_servers()
@@ -115,20 +166,6 @@ class servers_shell(base_shell):
                    or s in x.addresses['private'][0]):
                 tally += f_ram[x.flavorId]
         print "Account is using", float(tally)/1024.0, "GB of RAM"
-
-    def do_limits(self, s):
-        if self.limits == None:
-            self._limits()
-        print "    Server Limits (Absolute)"
-        print "Total RAM:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
-        print "    Server Rate Limits:"
-        for rate in self.limits['rate']:
-            if rate['URI'] is '*':
-                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on any URI per', rate['unit'].lower()
-            elif len(rate['URI']) > 1 and rate['URI'][0] == '*' and rate['URI'][-1] == '*':
-                    print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'with URI containing:', rate['URI'][1:-1], 'per', rate['unit'].lower()
-            else:
-                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on URI:', rate['URI'], 'per', rate['unit'].lower()
 
     def do_images(self, s):
         """Image Commands
@@ -273,6 +310,24 @@ class servers_shell(base_shell):
         self._list_servers()
 
     do_rm = do_delete
+
+    def do_limits(self, s):
+        if self.limits == None:
+            self._limits()
+        print "    Server Limits (Absolute)"
+        print "Total RAM:", float(self.limits['absolute']['maxTotalRAMSize'])/1024, 'GB'
+        print "    Server Rate Limits:"
+        for rate in self.limits['rate']:
+            if rate['URI'] is '*':
+                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on any URI per', rate['unit'].lower()
+            elif len(rate['URI']) > 1 and rate['URI'][0] == '*' and rate['URI'][-1] == '*':
+                    print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'with URI containing:', rate['URI'][1:-1], 'per', rate['unit'].lower()
+            else:
+                print rate['verb'], 'limit:', rate['remaining'], 'of', rate['value'], 'on URI:', rate['URI'], 'per', rate['unit'].lower()
+
+    #############################
+    # Private Helper functions
+    #############################
 
     def _list_servers(self):
         with error_handler(self, '(list servers)'):
